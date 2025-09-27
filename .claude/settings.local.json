@@ -10,7 +10,13 @@
       "Bash(grep:*)",
       "Bash(open test-connection.html)",
       "Bash(open clear-cache.html)",
-      "Bash(open \"test-connection.html?v=3\")"
+      "Bash(open \"test-connection.html?v=3\")",
+      "Bash(open test-connection-v2.html)",
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(open \"http://localhost:8085/test-connection-v2.html\")",
+      "Bash(open \"http://localhost:8085/\")",
+      "Bash(open:*)"
     ],
     "deny": [],
     "ask": []

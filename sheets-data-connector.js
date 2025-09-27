@@ -9,42 +9,7 @@ async function fetchSheetData() {
         throw new Error('No Google Sheet configured');
     }
 
-    // Method 1: Try Google Sheets API v4 with API key
-    if (apiKey && apiKey !== '') {
-        try {
-            const range = 'A1:Z1000'; // Get first 1000 rows
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
-
-            console.log('Fetching from Google Sheets API v4:', url);
-
-            const response = await fetch(url);
-
-            if (response.ok) {
-                const data = await response.json();
-
-                if (data.values && data.values.length > 0) {
-                    // Convert to array of objects
-                    const headers = data.values[0];
-                    const rows = data.values.slice(1);
-
-                    const result = rows.map(row => {
-                        const obj = {};
-                        headers.forEach((header, index) => {
-                            obj[header] = row[index] || '';
-                        });
-                        return obj;
-                    });
-
-                    console.log(`Successfully fetched ${result.length} rows from Google Sheets API`);
-                    return result;
-                }
-            }
-        } catch (error) {
-            console.error('Google Sheets API v4 failed:', error);
-        }
-    }
-
-    // Method 2: Try Google Visualization API (no API key needed)
+    // Method 1: Try Google Visualization API first (no API key needed, more reliable)
     try {
         const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
 
@@ -83,6 +48,42 @@ async function fetchSheetData() {
     } catch (error) {
         console.error('Google Visualization API failed:', error);
     }
+
+    // Method 2: Try Google Sheets API v4 with API key
+    if (apiKey && apiKey !== '') {
+        try {
+            const range = 'A1:Z1000'; // Get first 1000 rows
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+
+            console.log('Fetching from Google Sheets API v4:', url);
+
+            const response = await fetch(url);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.values && data.values.length > 0) {
+                    // Convert to array of objects
+                    const headers = data.values[0];
+                    const rows = data.values.slice(1);
+
+                    const result = rows.map(row => {
+                        const obj = {};
+                        headers.forEach((header, index) => {
+                            obj[header] = row[index] || '';
+                        });
+                        return obj;
+                    });
+
+                    console.log(`Successfully fetched ${result.length} rows from Google Sheets API`);
+                    return result;
+                }
+            }
+        } catch (error) {
+            console.error('Google Sheets API v4 failed:', error);
+        }
+    }
+
 
     // Method 3: Try CSV export
     try {

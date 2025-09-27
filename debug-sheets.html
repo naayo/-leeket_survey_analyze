@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Google Sheets Data</title>
+    <script src="sheets-config.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 300px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        .info { color: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Google Sheets Debug Tool</h1>
+
+    <div class="section">
+        <h2>📋 Configuration</h2>
+        <pre id="config"></pre>
+    </div>
+
+    <div class="section">
+        <h2>🔗 Test URLs</h2>
+        <button onclick="testGoogleAPI()">Test Google Sheets API v4</button>
+        <button onclick="testVisualizationAPI()">Test Visualization API</button>
+        <button onclick="testCSVExport()">Test CSV Export</button>
+        <div id="url-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Raw Response Data</h2>
+        <div id="raw-status"></div>
+        <pre id="raw-data"></pre>
+    </div>
+
+    <script>
+        // Display configuration
+        document.getElementById('config').textContent = JSON.stringify({
+            'Sheet ID': SHEETS_CONFIG.SHEET_ID,
+            'API Key': SHEETS_CONFIG.API_KEY ? SHEETS_CONFIG.API_KEY.substring(0, 15) + '...' : 'None',
+            'Sheet Names': SHEETS_CONFIG.SHEETS
+        }, null, 2);
+
+        async function testGoogleAPI() {
+            const resultsEl = document.getElementById('url-results');
+            const rawDataEl = document.getElementById('raw-data');
+            const rawStatusEl = document.getElementById('raw-status');
+
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/A1:Z1000?key=${SHEETS_CONFIG.API_KEY}`;
+
+            resultsEl.innerHTML = `<div class="info">Testing: ${url}</div>`;
+            rawStatusEl.innerHTML = '<div class="info">Fetching from Google Sheets API v4...</div>';
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultsEl.innerHTML += `<div class="success">✅ API v4 Success: ${response.status}</div>`;
+                    rawStatusEl.innerHTML = `<div class="success">✅ Response received (${JSON.stringify(data).length} characters)</div>`;
+                    rawDataEl.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultsEl.innerHTML += `<div class="error">❌ API v4 Error: ${response.status} - ${data.error?.message || 'Unknown error'}</div>`;
+                    rawDataEl.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultsEl.innerHTML += `<div class="error">❌ API v4 Exception: ${error.message}</div>`;
+                rawDataEl.textContent = error.stack;
+            }
+        }
+
+        async function testVisualizationAPI() {
+            const resultsEl = document.getElementById('url-results');
+            const rawDataEl = document.getElementById('raw-data');
+            const rawStatusEl = document.getElementById('raw-status');
+
+            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SHEET_ID}/gviz/tq?tqx=out:json`;
+
+            resultsEl.innerHTML = `<div class="info">Testing: ${url}</div>`;
+            rawStatusEl.innerHTML = '<div class="info">Fetching from Visualization API...</div>';
+
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+
+                if (response.ok) {
+                    resultsEl.innerHTML += `<div class="success">✅ Visualization API Success: ${response.status}</div>`;
+                    rawStatusEl.innerHTML = `<div class="success">✅ Response received (${text.length} characters)</div>`;
+
+                    // Try to parse the response
+                    const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/);
+                    if (match && match[1]) {
+                        try {
+                            const data = JSON.parse(match[1]);
+                            rawDataEl.textContent = JSON.stringify(data, null, 2);
+                        } catch (e) {
+                            rawDataEl.textContent = `Parse Error: ${e.message}\n\nRaw Response:\n${text}`;
+                        }
+                    } else {
+                        rawDataEl.textContent = `No JSON found in response:\n${text}`;
+                    }
+                } else {
+                    resultsEl.innerHTML += `<div class="error">❌ Visualization API Error: ${response.status}</div>`;
+                    rawDataEl.textContent = text;
+                }
+            } catch (error) {
+                resultsEl.innerHTML += `<div class="error">❌ Visualization API Exception: ${error.message}</div>`;
+                rawDataEl.textContent = error.stack;
+            }
+        }
+
+        async function testCSVExport() {
+            const resultsEl = document.getElementById('url-results');
+            const rawDataEl = document.getElementById('raw-data');
+            const rawStatusEl = document.getElementById('raw-status');
+
+            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SHEET_ID}/export?format=csv`;
+
+            resultsEl.innerHTML = `<div class="info">Testing: ${url}</div>`;
+            rawStatusEl.innerHTML = '<div class="info">Fetching CSV export...</div>';
+
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+
+                if (response.ok) {
+                    resultsEl.innerHTML += `<div class="success">✅ CSV Export Success: ${response.status}</div>`;
+                    rawStatusEl.innerHTML = `<div class="success">✅ CSV received (${text.length} characters)</div>`;
+                    rawDataEl.textContent = text;
+                } else {
+                    resultsEl.innerHTML += `<div class="error">❌ CSV Export Error: ${response.status}</div>`;
+                    rawDataEl.textContent = text;
+                }
+            } catch (error) {
+                resultsEl.innerHTML += `<div class="error">❌ CSV Export Exception: ${error.message}</div>`;
+                rawDataEl.textContent = error.stack;
+            }
+        }
+
+        // Auto-test the first method
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testGoogleAPI, 1000);
+        });
+    </script>
+</body>
+</html>
