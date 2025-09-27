@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord Leeket - Analyse du Sondage</title>
-    <script src="auth.js"></script>
-    <script src="sheets-config.js"></script>
-    <script src="sheets-data-connector.js"></script>
+    <script src="auth.js?v=3"></script>
+    <script src="sheets-config.js?v=3"></script>
+    <script src="sheets-data-connector.js?v=3"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
-    <script src="dashboard-updated.js" defer></script>
+    <script src="dashboard-updated.js?v=3" defer></script>
     <style>
         * {
             margin: 0;
@@ -229,6 +229,17 @@
             font-size: 0.85em;
             color: #4CAF50;
             margin-top: 5px;
+        }
+
+        .stat-detail {
+            font-size: 0.95em;
+            color: #666;
+            margin-top: 8px;
+            font-weight: 500;
+            background: rgba(102, 126, 234, 0.08);
+            padding: 4px 8px;
+            border-radius: 8px;
+            display: inline-block;
         }
         
         .charts-grid {
@@ -453,29 +464,34 @@
         <!-- KPIs principaux -->
         <div class="stats-row">
             <div class="stat-card">
-                <div class="stat-value">66</div>
+                <div class="stat-value" id="totalRespondentsStat">-</div>
                 <div class="stat-label">Répondants Total</div>
-                <div class="stat-trend">↑ +154% vs initial</div>
+                <div class="stat-trend" id="totalTrend">↑ +154% vs initial</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">4.21⭐</div>
+                <div class="stat-value" id="avgInterestStat">-⭐</div>
                 <div class="stat-label">Note d'Intérêt</div>
+                <div class="stat-detail" id="interestDetail">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">45%</div>
+                <div class="stat-value" id="betaTestersStat">-</div>
                 <div class="stat-label">Testeurs Bêta</div>
+                <div class="stat-detail" id="betaDetail">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">58%</div>
+                <div class="stat-value" id="diasporaStat">-</div>
                 <div class="stat-label">Clients Diaspora</div>
+                <div class="stat-detail" id="diasporaDetail">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">46.7</div>
-                <div class="stat-label">Score Prospect Moyen</div>
+                <div class="stat-value" id="senegalStat">-</div>
+                <div class="stat-label">Clients Sénégal</div>
+                <div class="stat-detail" id="senegalDetail">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">100%</div>
-                <div class="stat-label">Taux de Contact Téléphone</div>
+                <div class="stat-value" id="phonesStat">-📱</div>
+                <div class="stat-label">Taux de Contact</div>
+                <div class="stat-detail" id="phoneDetail">-</div>
             </div>
         </div>
 
@@ -509,13 +525,13 @@
             <div class="insight-title">
                 <span class="emoji">💡</span> Points Clés Stratégiques
             </div>
-            <ul class="insight-list">
-                <li>Marché validé : 66 réponses en peu de temps, forte traction</li>
-                <li>Diaspora confirmée comme segment prioritaire (58% du marché)</li>
-                <li>Excellent engagement : 45% veulent être testeurs bêta</li>
-                <li>Thieboudienne et Yassa dominent largement (18 et 17 mentions)</li>
-                <li>Prix psychologique validé : 5,600 - 16,000 FCFA acceptables</li>
-                <li>Majorité de jeunes actifs : 47% ont entre 18-25 ans</li>
+            <ul class="insight-list" id="strategicInsights">
+                <li>Marché validé : <strong>66 réponses</strong> en peu de temps, forte traction</li>
+                <li>Diaspora segment prioritaire : <strong>38 clients (58%)</strong> vs Sénégal <strong>28 (42%)</strong></li>
+                <li>Excellent engagement : <strong>30 testeurs bêta (45%)</strong> prêts à démarrer</li>
+                <li>Top 3 plats plébiscités : Thiébou Dieune, Yassa Poulet, Mafé</li>
+                <li>Prix idéal validé : <strong>7,500 FCFA</strong> (min 3,500 - max 15,000)</li>
+                <li>Profil cible : <strong>25-34 ans (42%)</strong> et <strong>35-44 ans (30%)</strong></li>
             </ul>
         </div>
 

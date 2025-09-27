@@ -23,6 +23,11 @@ window.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('currentUser').textContent = user.username;
     }
 
+    // Clear any cached dashboard data to force fresh load
+    dashboardData = null;
+    dataSource = 'loading';
+    chartsInitialized = false;
+
     // Load data and initialize dashboard
     await loadDashboardData();
 });
@@ -125,13 +130,65 @@ function updateDataSourceIndicator(source) {
 function updateUIWithData() {
     if (!dashboardData) return;
 
-    // Update stats cards - need to wait for DOM to be ready
-    const statCards = document.querySelectorAll('.stat-card');
-    if (statCards.length >= 4) {
-        statCards[0].querySelector('.stat-value').textContent = dashboardData.totalRespondents;
-        statCards[1].querySelector('.stat-value').textContent = dashboardData.avgInterest + '⭐';
-        statCards[2].querySelector('.stat-value').textContent = dashboardData.betaTestersCount;
-        statCards[3].querySelector('.stat-value').textContent = dashboardData.phoneCount + '📱';
+    // Update total respondents
+    const totalRespondentsEl = document.getElementById('totalRespondentsStat');
+    if (totalRespondentsEl) {
+        totalRespondentsEl.textContent = dashboardData.totalRespondents;
+    }
+
+    // Update average interest with detail
+    const avgInterestEl = document.getElementById('avgInterestStat');
+    if (avgInterestEl) {
+        avgInterestEl.textContent = dashboardData.avgInterest + '⭐';
+    }
+    const interestDetailEl = document.getElementById('interestDetail');
+    if (interestDetailEl) {
+        const highInterest = dashboardData.interestDistribution[3] + dashboardData.interestDistribution[4];
+        interestDetailEl.textContent = `${highInterest} très intéressés (4-5⭐)`;
+    }
+
+    // Update beta testers with both number and percentage
+    const betaTestersEl = document.getElementById('betaTestersStat');
+    if (betaTestersEl) {
+        betaTestersEl.textContent = dashboardData.betaTestersCount;
+    }
+    const betaDetailEl = document.getElementById('betaDetail');
+    if (betaDetailEl) {
+        const betaPercent = Math.round((dashboardData.betaTestersCount / dashboardData.totalRespondents) * 100);
+        betaDetailEl.textContent = `soit ${betaPercent}% des répondants`;
+    }
+
+    // Update diaspora with both number and percentage
+    const diasporaEl = document.getElementById('diasporaStat');
+    if (diasporaEl) {
+        diasporaEl.textContent = dashboardData.diasporaCount;
+    }
+    const diasporaDetailEl = document.getElementById('diasporaDetail');
+    if (diasporaDetailEl) {
+        const diasporaPercent = Math.round((dashboardData.diasporaCount / dashboardData.totalRespondents) * 100);
+        diasporaDetailEl.textContent = `${diasporaPercent}% du total`;
+    }
+
+    // Update Senegal with both number and percentage
+    const senegalEl = document.getElementById('senegalStat');
+    if (senegalEl) {
+        senegalEl.textContent = dashboardData.senegalCount;
+    }
+    const senegalDetailEl = document.getElementById('senegalDetail');
+    if (senegalDetailEl) {
+        const senegalPercent = Math.round((dashboardData.senegalCount / dashboardData.totalRespondents) * 100);
+        senegalDetailEl.textContent = `${senegalPercent}% du total`;
+    }
+
+    // Update phone contact rate
+    const phonesEl = document.getElementById('phonesStat');
+    if (phonesEl) {
+        phonesEl.textContent = dashboardData.phoneCount + '📱';
+    }
+    const phoneDetailEl = document.getElementById('phoneDetail');
+    if (phoneDetailEl) {
+        const phonePercent = Math.round((dashboardData.phoneCount / dashboardData.totalRespondents) * 100);
+        phoneDetailEl.textContent = `${phonePercent}% contactables`;
     }
 
     // Update last update info
