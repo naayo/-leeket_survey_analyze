@@ -5,6 +5,11 @@ let dashboardData = null;
 let dataSource = 'loading';
 let chartsInitialized = false;
 
+// Ensure we have the data fetcher instance
+if (typeof leeketDataFetcher === 'undefined') {
+    window.leeketDataFetcher = new LeeketDataFetcherV2();
+}
+
 // === AUTHENTICATION CHECK ===
 window.addEventListener('DOMContentLoaded', async function() {
     // Check authentication

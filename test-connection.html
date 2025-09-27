@@ -166,7 +166,7 @@
                 console.log('Starting connection test...');
 
                 // Create a new instance to bypass cache
-                const tester = new LeeketDataFetcher();
+                const tester = new LeeketDataFetcherV2();
                 tester.cache = null; // Force fresh fetch
 
                 // Try to fetch raw data
