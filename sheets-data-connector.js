@@ -230,13 +230,13 @@ function processSurveyData(rawData) {
 
         // Process beta tester
         const beta = findValue(row, ['beta', 'testeur', 'tester']);
-        if (beta && beta.toLowerCase().includes('oui')) {
+        if (beta && String(beta).toLowerCase().includes('oui')) {
             betaTesters++;
         }
 
         // Process phone
         const phone = findValue(row, ['téléphone', 'telephone', 'phone', 'tel']);
-        if (phone && phone.trim() !== '') {
+        if (phone && String(phone).trim() !== '') {
             phoneCount++;
         }
 
@@ -280,7 +280,7 @@ function processSurveyData(rawData) {
         if (interests.length > 0) {
             score = interests[interests.length - 1] * 20;
         }
-        if (beta && beta.toLowerCase().includes('oui')) {
+        if (beta && String(beta).toLowerCase().includes('oui')) {
             score += 10;
         }
         scores.push(Math.min(100, score));
