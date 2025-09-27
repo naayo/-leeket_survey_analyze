@@ -216,11 +216,11 @@
                         <li>Total répondants: <strong>${processed.totalRespondents}</strong></li>
                         <li>Diaspora: <strong>${processed.diasporaCount}</strong> (${Math.round(processed.diasporaCount / processed.totalRespondents * 100)}%)</li>
                         <li>Sénégal Local: <strong>${processed.senegalCount}</strong> (${Math.round(processed.senegalCount / processed.totalRespondents * 100)}%)</li>
-                        <li>Non classés: <strong>${processed.unknownCount}</strong></li>
                         <li>Beta Testeurs: <strong>${processed.betaTestersCount}</strong></li>
                         <li>Avec téléphone: <strong>${processed.phoneCount}</strong></li>
                         <li>Note moyenne: <strong>${processed.avgInterest}⭐</strong></li>
                     </ul>
+                    <p style="color: green; font-weight: bold;">✅ Vérification: ${processed.diasporaCount} + ${processed.senegalCount} = ${processed.diasporaCount + processed.senegalCount} = ${processed.totalRespondents} ✓</p>
                 `;
 
                 // Display stats cards

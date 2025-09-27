@@ -179,8 +179,10 @@ class LeeketDataProcessor {
      * Determine if user is diaspora or local based on location field
      */
     categorizeLocation(locationValue) {
+        // If empty or null, default to local (Senegal)
         if (!locationValue || locationValue === '') {
-            return 'unknown';
+            console.log('Empty location -> defaulting to local');
+            return 'local';
         }
 
         const lowerValue = locationValue.toLowerCase();
@@ -188,6 +190,7 @@ class LeeketDataProcessor {
         // Check for explicit diaspora keywords
         for (const keyword of this.diasporaKeywords) {
             if (lowerValue.includes(keyword)) {
+                console.log(`Found diaspora keyword "${keyword}" in "${locationValue}"`);
                 return 'diaspora';
             }
         }
@@ -195,11 +198,13 @@ class LeeketDataProcessor {
         // Check for explicit local keywords
         for (const keyword of this.localKeywords) {
             if (lowerValue.includes(keyword)) {
+                console.log(`Found local keyword "${keyword}" in "${locationValue}"`);
                 return 'local';
             }
         }
 
         // If no match, default to local (most respondents in Senegal)
+        console.log(`No keyword match for "${locationValue}" -> defaulting to local`);
         return 'local';
     }
 
@@ -269,12 +274,12 @@ class LeeketDataProcessor {
             const locationValue = this.getValue(row, columns.location);
             const category = this.categorizeLocation(locationValue);
 
+            // Only two categories now: diaspora or local (no unknown)
             if (category === 'diaspora') {
                 stats.diaspora++;
-            } else if (category === 'local') {
-                stats.local++;
             } else {
-                stats.unknown++;
+                // Everything else is local (including empty/unknown)
+                stats.local++;
             }
 
             // Beta tester
@@ -362,10 +367,14 @@ class LeeketDataProcessor {
         console.log('📊 Processing Results:');
         console.log(`Total: ${stats.total}`);
         console.log(`Diaspora: ${stats.diaspora} (${Math.round(stats.diaspora / stats.total * 100)}%)`);
-        console.log(`Local: ${stats.local} (${Math.round(stats.local / stats.total * 100)}%)`);
-        console.log(`Unknown: ${stats.unknown}`);
+        console.log(`Sénégal Local: ${stats.local} (${Math.round(stats.local / stats.total * 100)}%)`);
         console.log(`Beta Testers: ${stats.betaTesters}`);
         console.log(`With Phone: ${stats.withPhone}`);
+
+        // Validation check
+        if (stats.diaspora + stats.local !== stats.total) {
+            console.error('⚠️ ERREUR: La somme diaspora + local ne correspond pas au total!');
+        }
 
         // Convert to dashboard format
         return this.formatForDashboard(stats);
@@ -501,7 +510,6 @@ class LeeketDataProcessor {
             totalRespondents: stats.total,
             diasporaCount: stats.diaspora,
             senegalCount: stats.local,
-            unknownCount: stats.unknown,
             betaTestersCount: stats.betaTesters,
             phoneCount: stats.withPhone,
             avgInterest: stats.interests.length > 0
@@ -538,7 +546,6 @@ class LeeketDataProcessor {
             totalRespondents: 0,
             diasporaCount: 0,
             senegalCount: 0,
-            unknownCount: 0,
             betaTestersCount: 0,
             phoneCount: 0,
             avgInterest: '0',
