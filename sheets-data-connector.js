@@ -13,40 +13,51 @@ async function fetchSheetData() {
     try {
         const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Responses`;
 
-        console.log('Fetching from Google Visualization API:', url);
+        console.log('🔄 Fetching from Google Visualization API:', url);
 
         const response = await fetch(url);
-        const text = await response.text();
 
-        // Parse Google's response
-        const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/);
+        if (!response.ok) {
+            console.error(`❌ Visualization API HTTP error: ${response.status} ${response.statusText}`);
+        } else {
+            const text = await response.text();
+            console.log('📦 Response received, length:', text.length);
 
-        if (match && match[1]) {
-            const data = JSON.parse(match[1]);
+            // Parse Google's response
+            const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/);
 
-            if (data.table && data.table.rows) {
-                const cols = data.table.cols;
-                const rows = data.table.rows;
+            if (match && match[1]) {
+                const data = JSON.parse(match[1]);
 
-                // Get headers
-                const headers = cols.map(col => col.label || '');
+                if (data.table && data.table.rows && data.table.rows.length > 0) {
+                    const cols = data.table.cols;
+                    const rows = data.table.rows;
 
-                // Convert to array of objects
-                const result = rows.map(row => {
-                    const obj = {};
-                    row.c.forEach((cell, index) => {
-                        const value = cell ? (cell.v !== null ? cell.v : '') : '';
-                        obj[headers[index] || `col${index}`] = value;
+                    // Get headers
+                    const headers = cols.map(col => col.label || '');
+                    console.log('📊 Headers found:', headers);
+
+                    // Convert to array of objects
+                    const result = rows.map(row => {
+                        const obj = {};
+                        row.c.forEach((cell, index) => {
+                            const value = cell ? (cell.v !== null ? cell.v : '') : '';
+                            obj[headers[index] || `col${index}`] = value;
+                        });
+                        return obj;
                     });
-                    return obj;
-                });
 
-                console.log(`Successfully fetched ${result.length} rows from Visualization API`);
-                return result;
+                    console.log(`✅ Successfully fetched ${result.length} rows from Visualization API`);
+                    return result;
+                } else {
+                    console.warn('⚠️ No data rows in response');
+                }
+            } else {
+                console.warn('⚠️ Could not parse visualization response');
             }
         }
     } catch (error) {
-        console.error('Google Visualization API failed:', error);
+        console.error('❌ Google Visualization API failed:', error);
     }
 
     // Method 2: Try Google Sheets API v4 with API key
@@ -118,6 +129,11 @@ async function fetchSheetData() {
         console.error('CSV export failed:', error);
     }
 
+    console.error('❌ All methods failed to fetch data');
+    console.error('Please check:');
+    console.error('1. Google Sheet is public (Anyone with link can view)');
+    console.error('2. Sheet tab name is "Responses"');
+    console.error('3. Sheet ID is correct:', sheetId);
     throw new Error('All methods failed to fetch data');
 }
 

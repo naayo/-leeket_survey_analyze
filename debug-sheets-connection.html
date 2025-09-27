@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Google Sheets Connection</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2ecc71;
+        }
+        .success { color: #27ae60; font-weight: bold; }
+        .error { color: #e74c3c; font-weight: bold; }
+        .warning { color: #f39c12; font-weight: bold; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Google Sheets Connection</h1>
+
+    <div class="test-section">
+        <h2>Configuration</h2>
+        <div id="config"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test All Methods</h2>
+        <button onclick="testAllMethods()">Run All Tests</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const SHEET_ID = '1AFtxuGUJMRPWBld9nWXfPVAvYTatIk1fpv_SiUSxKDE';
+        const API_KEY = 'AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs';
+
+        // Show config
+        document.getElementById('config').innerHTML = `
+            <p>Sheet ID: <strong>${SHEET_ID}</strong></p>
+            <p>API Key: <strong>${API_KEY ? '***' + API_KEY.slice(-8) : 'NOT SET'}</strong></p>
+        `;
+
+        async function testAllMethods() {
+            const resultsEl = document.getElementById('results');
+            resultsEl.innerHTML = '<h3>Testing...</h3>';
+
+            let html = '';
+
+            // Test 1: Visualization API
+            html += '<h3>1. Google Visualization API (Primary Method)</h3>';
+            try {
+                const vizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Responses`;
+                console.log('Testing Visualization API:', vizUrl);
+
+                const vizResponse = await fetch(vizUrl);
+                const vizText = await vizResponse.text();
+
+                if (vizResponse.ok) {
+                    // Check if we got the right format
+                    if (vizText.includes('google.visualization.Query.setResponse')) {
+                        const match = vizText.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/);
+                        if (match && match[1]) {
+                            try {
+                                const data = JSON.parse(match[1]);
+                                const rows = data.table?.rows?.length || 0;
+                                html += `<div class="success">✅ SUCCESS! Got ${rows} rows of data</div>`;
+                                html += `<pre>First row sample: ${JSON.stringify(data.table?.rows?.[0], null, 2)}</pre>`;
+                            } catch (e) {
+                                html += `<div class="error">❌ Parse error: ${e.message}</div>`;
+                            }
+                        } else {
+                            html += `<div class="warning">⚠️ Response received but no data match found</div>`;
+                        }
+                    } else {
+                        html += `<div class="error">❌ Unexpected response format</div>`;
+                        html += `<pre>${vizText.substring(0, 500)}...</pre>`;
+                    }
+                } else {
+                    html += `<div class="error">❌ HTTP ${vizResponse.status}: ${vizResponse.statusText}</div>`;
+                }
+            } catch (error) {
+                html += `<div class="error">❌ Network error: ${error.message}</div>`;
+                console.error('Visualization API Error:', error);
+            }
+
+            // Test 2: Sheets API v4
+            html += '<h3>2. Google Sheets API v4 (with API Key)</h3>';
+            try {
+                const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Responses!A1:Z1000?key=${API_KEY}`;
+                console.log('Testing Sheets API v4:', apiUrl);
+
+                const apiResponse = await fetch(apiUrl);
+
+                if (apiResponse.ok) {
+                    const apiData = await apiResponse.json();
+                    html += `<div class="success">✅ SUCCESS! Got ${apiData.values?.length || 0} rows</div>`;
+                    html += `<pre>Headers: ${JSON.stringify(apiData.values?.[0], null, 2)}</pre>`;
+                } else {
+                    const error = await apiResponse.json();
+                    html += `<div class="error">❌ API Error: ${error.error?.message || 'Unknown'}</div>`;
+                    if (error.error?.message?.includes('API key not valid')) {
+                        html += `<div class="warning">⚠️ API Key might be invalid or expired</div>`;
+                    }
+                    if (error.error?.message?.includes('Sheets API has not been used')) {
+                        html += `<div class="warning">⚠️ Google Sheets API needs to be enabled in Google Cloud Console</div>`;
+                    }
+                }
+            } catch (error) {
+                html += `<div class="error">❌ Network error: ${error.message}</div>`;
+                console.error('Sheets API Error:', error);
+            }
+
+            // Test 3: CSV Export
+            html += '<h3>3. CSV Export (Fallback)</h3>';
+            try {
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+                console.log('Testing CSV Export:', csvUrl);
+
+                const csvResponse = await fetch(csvUrl);
+
+                if (csvResponse.ok) {
+                    const csvText = await csvResponse.text();
+                    const lines = csvText.split('\n');
+                    html += `<div class="success">✅ SUCCESS! Got ${lines.length} lines</div>`;
+                    html += `<pre>First line: ${lines[0]}</pre>`;
+                } else {
+                    html += `<div class="error">❌ HTTP ${csvResponse.status}: ${csvResponse.statusText}</div>`;
+                }
+            } catch (error) {
+                html += `<div class="error">❌ Network error: ${error.message}</div>`;
+                console.error('CSV Export Error:', error);
+            }
+
+            // Test 4: Check if sheet is public
+            html += '<h3>4. Public Access Check</h3>';
+            try {
+                const publicUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+                html += `<div>Sheet URL: <a href="${publicUrl}" target="_blank">${publicUrl}</a></div>`;
+                html += `<div class="warning">⚠️ Make sure the sheet is set to "Anyone with the link can view"</div>`;
+            } catch (error) {
+                html += `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+
+            resultsEl.innerHTML = html;
+        }
+
+        // Auto-run on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testAllMethods, 500);
+        });
+    </script>
+</body>
+</html>
