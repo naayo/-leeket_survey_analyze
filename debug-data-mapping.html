@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Data Mapping</title>
+    <script src="sheets-config.js?v=5"></script>
+    <script src="sheets-data-connector.js?v=5"></script>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2ecc71;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f4f4f4;
+            font-weight: bold;
+        }
+        .success { color: #27ae60; }
+        .warning { color: #f39c12; }
+        .error { color: #e74c3c; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 300px;
+        }
+        button {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Data Mapping</h1>
+
+    <div class="section">
+        <h2>Raw Data Analysis</h2>
+        <button onclick="analyzeData()">Analyze Sheet Data</button>
+        <div id="raw-data"></div>
+    </div>
+
+    <div class="section">
+        <h2>Column Headers</h2>
+        <div id="headers"></div>
+    </div>
+
+    <div class="section">
+        <h2>Sample Rows</h2>
+        <div id="samples"></div>
+    </div>
+
+    <div class="section">
+        <h2>Processing Results</h2>
+        <div id="processing"></div>
+    </div>
+
+    <script>
+        async function analyzeData() {
+            const rawDataEl = document.getElementById('raw-data');
+            const headersEl = document.getElementById('headers');
+            const samplesEl = document.getElementById('samples');
+            const processingEl = document.getElementById('processing');
+
+            rawDataEl.innerHTML = '<p>Fetching data...</p>';
+
+            try {
+                // Fetch raw data
+                const rawData = await fetchSheetData();
+
+                rawDataEl.innerHTML = `<p class="success">✅ Fetched ${rawData.length} rows</p>`;
+
+                // Show headers
+                if (rawData.length > 0) {
+                    const headers = Object.keys(rawData[0]);
+                    headersEl.innerHTML = '<h3>Column Headers Found:</h3>';
+                    headersEl.innerHTML += '<table><tr>';
+                    headers.forEach(h => {
+                        headersEl.innerHTML += `<th>${h}</th>`;
+                    });
+                    headersEl.innerHTML += '</tr></table>';
+
+                    // Show first 3 rows
+                    samplesEl.innerHTML = '<h3>First 3 Rows:</h3>';
+                    samplesEl.innerHTML += '<table>';
+
+                    for (let i = 0; i < Math.min(3, rawData.length); i++) {
+                        samplesEl.innerHTML += '<tr>';
+                        headers.forEach(h => {
+                            const value = rawData[i][h];
+                            samplesEl.innerHTML += `<td>${value || '(empty)'}</td>`;
+                        });
+                        samplesEl.innerHTML += '</tr>';
+                    }
+                    samplesEl.innerHTML += '</table>';
+
+                    // Analyze specific fields
+                    processingEl.innerHTML = '<h3>Field Analysis:</h3>';
+
+                    // Check location field
+                    const locationFields = ['quartier/zone', 'localisation', 'location', 'pays', 'country', 'zone', 'quartier'];
+                    let locationFound = null;
+                    for (const field of locationFields) {
+                        for (const header of headers) {
+                            if (header.toLowerCase().includes(field.toLowerCase())) {
+                                locationFound = header;
+                                break;
+                            }
+                        }
+                        if (locationFound) break;
+                    }
+
+                    processingEl.innerHTML += `<p><strong>Location field:</strong> ${locationFound || 'NOT FOUND'}</p>`;
+
+                    // Check beta field
+                    const betaFields = ['beta', 'testeur', 'tester'];
+                    let betaFound = null;
+                    for (const field of betaFields) {
+                        for (const header of headers) {
+                            if (header.toLowerCase().includes(field.toLowerCase())) {
+                                betaFound = header;
+                                break;
+                            }
+                        }
+                        if (betaFound) break;
+                    }
+
+                    processingEl.innerHTML += `<p><strong>Beta tester field:</strong> ${betaFound || 'NOT FOUND'}</p>`;
+
+                    // Count location values
+                    if (locationFound) {
+                        let diasporaCount = 0;
+                        let senegalCount = 0;
+                        let emptyCount = 0;
+
+                        rawData.forEach(row => {
+                            const location = row[locationFound];
+                            if (!location || location === '') {
+                                emptyCount++;
+                            } else {
+                                const loc = String(location).toLowerCase();
+                                if (loc.includes('france') || loc.includes('usa') || loc.includes('canada') ||
+                                    loc.includes('europe') || loc.includes('étranger') || loc.includes('états-unis')) {
+                                    diasporaCount++;
+                                } else {
+                                    senegalCount++;
+                                }
+                            }
+                        });
+
+                        processingEl.innerHTML += '<h4>Location Analysis:</h4>';
+                        processingEl.innerHTML += `<p>Diaspora: ${diasporaCount}</p>`;
+                        processingEl.innerHTML += `<p>Sénégal: ${senegalCount}</p>`;
+                        processingEl.innerHTML += `<p>Empty: ${emptyCount}</p>`;
+                    }
+
+                    // Count beta testers
+                    if (betaFound) {
+                        let betaYes = 0;
+                        let betaNo = 0;
+                        let betaEmpty = 0;
+
+                        rawData.forEach(row => {
+                            const beta = row[betaFound];
+                            if (!beta || beta === '') {
+                                betaEmpty++;
+                            } else if (String(beta).toLowerCase().includes('oui')) {
+                                betaYes++;
+                            } else {
+                                betaNo++;
+                            }
+                        });
+
+                        processingEl.innerHTML += '<h4>Beta Tester Analysis:</h4>';
+                        processingEl.innerHTML += `<p>Yes: ${betaYes}</p>`;
+                        processingEl.innerHTML += `<p>No: ${betaNo}</p>`;
+                        processingEl.innerHTML += `<p>Empty: ${betaEmpty}</p>`;
+                    }
+
+                    // Show raw data for first row
+                    processingEl.innerHTML += '<h4>First Row Raw Data:</h4>';
+                    processingEl.innerHTML += '<pre>' + JSON.stringify(rawData[0], null, 2) + '</pre>';
+                }
+
+            } catch (error) {
+                rawDataEl.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Auto-run
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(analyzeData, 500);
+        });
+    </script>
+</body>
+</html>
