@@ -34,7 +34,7 @@ async function loadDashboardData() {
 
     try {
         // Fetch data from Google Sheets
-        dashboardData = await leeketDataFetcher.getDashboardData();
+        dashboardData = await getDashboardData();
 
         // Check if we're using live data or fallback
         if (SHEETS_CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {

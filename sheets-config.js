@@ -15,7 +15,7 @@ const SHEETS_CONFIG = {
 	},
 
 	// API configuration
-	API_KEY: '', // Optional: Add Google API key for higher rate limits
+	API_KEY: 'AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs', // Optional: Add Google API key for higher rate limits
 
 	// Cache configuration
 	CACHE_DURATION: 5 * 60 * 1000, // 5 minutes cache
