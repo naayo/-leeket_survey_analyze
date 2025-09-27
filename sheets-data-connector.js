@@ -187,15 +187,20 @@ function processSurveyData(rawData) {
     // Process each row
     rawData.forEach(row => {
         // Process location
-        const location = findValue(row, ['localisation', 'location', 'pays', 'country']);
+        const location = findValue(row, ['quartier/zone', 'localisation', 'location', 'pays', 'country', 'zone', 'quartier']);
         if (location) {
             const loc = location.toLowerCase();
+            // Check for diaspora keywords
             if (loc.includes('france') || loc.includes('usa') || loc.includes('canada') ||
-                loc.includes('europe') || loc.includes('étranger')) {
+                loc.includes('europe') || loc.includes('étranger') || loc.includes('états-unis')) {
                 diasporaCount++;
             } else {
+                // All other locations are considered Sénégal local
                 senegalCount++;
             }
+        } else {
+            // If no location data, assume Sénégal local
+            senegalCount++;
         }
 
         // Process interest
