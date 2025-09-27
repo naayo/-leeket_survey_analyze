@@ -202,8 +202,8 @@ function processSurveyData(rawData) {
 
     // Process each row
     rawData.forEach(row => {
-        // Process location
-        const location = findValue(row, ['quartier/zone', 'localisation', 'location', 'pays', 'country', 'zone', 'quartier']);
+        // Process location - Look for "Pays (Diaspora, Local)" column first, then fallback to Quartier/Zone
+        const location = findValue(row, ['Pays (Diaspora, Local)', 'pays (diaspora', 'Quartier/Zone', 'quartier/zone', 'localisation', 'location', 'pays', 'country', 'zone', 'quartier']);
         if (location) {
             const loc = String(location).toLowerCase();
             // Check for diaspora keywords
@@ -228,20 +228,20 @@ function processSurveyData(rawData) {
             }
         }
 
-        // Process beta tester
-        const beta = findValue(row, ['beta', 'testeur', 'tester']);
+        // Process beta tester - exact match for "Beta testeur"
+        const beta = findValue(row, ['Beta testeur', 'beta testeur', 'beta', 'testeur', 'tester']);
         if (beta && String(beta).toLowerCase().includes('oui')) {
             betaTesters++;
         }
 
-        // Process phone
-        const phone = findValue(row, ['téléphone', 'telephone', 'phone', 'tel']);
+        // Process phone - exact match for "Téléphone"
+        const phone = findValue(row, ['Téléphone', 'téléphone', 'telephone', 'phone', 'tel']);
         if (phone && String(phone).trim() !== '') {
             phoneCount++;
         }
 
-        // Process age
-        const age = findValue(row, ['âge', 'age']);
+        // Process age - look for "Tranche d'âge"
+        const age = findValue(row, ["Tranche d'âge", 'tranche d\'âge', 'âge', 'age']);
         if (age) {
             categorizeAge(age, ageGroups);
         }
@@ -252,8 +252,8 @@ function processSurveyData(rawData) {
             categorizeServices(String(serviceList), services);
         }
 
-        // Process dishes
-        const dishes = findValue(row, ['plats', 'plat', 'dishes', 'dish']);
+        // Process dishes - look for "Plats sénégalais préférés"
+        const dishes = findValue(row, ['Plats sénégalais préférés', 'plats sénégalais', 'plats', 'plat', 'dishes', 'dish']);
         if (dishes) {
             const dishList = String(dishes).split(/[,;]/);
             dishList.forEach(dish => {
