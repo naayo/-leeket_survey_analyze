@@ -36,13 +36,15 @@ async function loadDashboardData() {
         // Fetch data from Google Sheets
         dashboardData = await getDashboardData();
 
-        // Check if we're using live data or fallback
-        if (SHEETS_CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
-            dataSource = 'fallback';
-            updateDataSourceIndicator('fallback');
-        } else {
+        // Check if we're using live data or fallback based on actual data source
+        if (dashboardData._dataSource === 'live') {
             dataSource = 'live';
             updateDataSourceIndicator('live');
+            console.log('✅ Using live data from Google Sheets');
+        } else {
+            dataSource = 'fallback';
+            updateDataSourceIndicator('fallback');
+            console.warn('⚠️ Using fallback data:', dashboardData._reason);
         }
 
         // Update the UI with new data
@@ -61,7 +63,10 @@ async function loadDashboardData() {
         showError('Impossible de charger les données. Utilisation des données de secours.');
 
         // Use fallback data
-        dashboardData = leeketDataFetcher.getFallbackData();
+        const fallbackData = getFallbackData();
+        fallbackData._dataSource = 'fallback';
+        fallbackData._reason = 'Connection error';
+        dashboardData = fallbackData;
         dataSource = 'fallback';
         updateDataSourceIndicator('fallback');
 

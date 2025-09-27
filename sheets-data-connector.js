@@ -441,10 +441,22 @@ function getFallbackData() {
 async function getDashboardData() {
     try {
         const rawData = await fetchSheetData();
-        return processSurveyData(rawData);
+        const processedData = processSurveyData(rawData);
+
+        // Mark as live data
+        processedData._dataSource = 'live';
+        processedData._fetchedAt = new Date().toISOString();
+
+        return processedData;
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        return getFallbackData();
+        const fallbackData = getFallbackData();
+
+        // Mark as fallback data
+        fallbackData._dataSource = 'fallback';
+        fallbackData._reason = error.message;
+
+        return fallbackData;
     }
 }
 
