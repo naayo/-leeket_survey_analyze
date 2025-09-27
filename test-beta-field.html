@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Beta Field Detection</title>
+    <script src="sheets-config.js?v=7"></script>
+    <script src="sheets-data-connector.js?v=7"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .container {
+            background: #0a0a0a;
+            border: 1px solid #00ff00;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        h1 { color: #00ff00; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #00ff00;
+            overflow: auto;
+        }
+        .found { color: #00ff00; font-weight: bold; }
+        .notfound { color: #ff0000; font-weight: bold; }
+        .value { color: #ffff00; }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Beta Field Detection Test</h1>
+
+        <button onclick="analyzeBetaField()">Analyze Beta Field</button>
+        <button onclick="checkAllHeaders()">Show All Headers</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function analyzeBetaField() {
+            const resultsEl = document.getElementById('results');
+            resultsEl.innerHTML = '<p>⏳ Fetching data...</p>';
+
+            try {
+                const rawData = await fetchSheetData();
+
+                if (!rawData || rawData.length === 0) {
+                    resultsEl.innerHTML = '<p class="notfound">No data found!</p>';
+                    return;
+                }
+
+                const headers = Object.keys(rawData[0]);
+
+                // Possible beta field names
+                const betaVariations = [
+                    'beta', 'Beta', 'BETA',
+                    'testeur', 'Testeur', 'TESTEUR',
+                    'tester', 'Tester', 'TESTER',
+                    'beta testeur', 'Beta testeur', 'Beta Testeur',
+                    'beta tester', 'Beta tester', 'Beta Tester',
+                    'bêta', 'Bêta', 'BÊTA',
+                    'bêta testeur', 'Bêta testeur', 'Bêta Testeur',
+                    'souhaitez-vous', 'Souhaitez-vous',
+                    'voulez-vous', 'Voulez-vous',
+                    'beta-testeur', 'Beta-testeur',
+                    'betaTesteur', 'BetaTesteur'
+                ];
+
+                let html = '<h2>Beta Field Analysis:</h2>';
+
+                // Find which variation matches
+                let foundColumn = null;
+                for (const variation of betaVariations) {
+                    for (const header of headers) {
+                        if (header.toLowerCase().includes(variation.toLowerCase())) {
+                            foundColumn = header;
+                            break;
+                        }
+                    }
+                    if (foundColumn) break;
+                }
+
+                if (foundColumn) {
+                    html += `<p class="found">✅ Beta field found: "${foundColumn}"</p>`;
+
+                    // Analyze values
+                    const valueCounts = {};
+                    let emptyCount = 0;
+
+                    rawData.forEach((row, i) => {
+                        const value = row[foundColumn];
+                        if (!value || value === '') {
+                            emptyCount++;
+                        } else {
+                            const val = String(value).trim();
+                            valueCounts[val] = (valueCounts[val] || 0) + 1;
+                        }
+                    });
+
+                    html += '<h3>Value Distribution:</h3>';
+                    html += '<pre>';
+                    for (const [value, count] of Object.entries(valueCounts)) {
+                        html += `<span class="value">"${value}"</span>: ${count} occurrences\n`;
+                    }
+                    if (emptyCount > 0) {
+                        html += `<span class="value">(empty)</span>: ${emptyCount} occurrences\n`;
+                    }
+                    html += '</pre>';
+
+                    // Show first 10 actual values
+                    html += '<h3>First 10 Raw Values:</h3>';
+                    html += '<pre>';
+                    for (let i = 0; i < Math.min(10, rawData.length); i++) {
+                        const val = rawData[i][foundColumn];
+                        html += `Row ${i + 1}: <span class="value">"${val || '(empty)'}"</span>\n`;
+                    }
+                    html += '</pre>';
+
+                    // Count how many would be considered "yes"
+                    let yesCount = 0;
+                    rawData.forEach(row => {
+                        const val = row[foundColumn];
+                        if (val) {
+                            const lower = String(val).toLowerCase();
+                            if (lower.includes('oui') || lower === 'yes' || lower === 'o' ||
+                                lower === 'y' || lower === '1' || lower === 'true' ||
+                                lower.includes('veux') || lower.includes('souhaite')) {
+                                yesCount++;
+                            }
+                        }
+                    });
+
+                    html += `<h3>Analysis Result:</h3>`;
+                    html += `<p>Total rows: ${rawData.length}</p>`;
+                    html += `<p class="found">Beta testers detected: ${yesCount} (${Math.round(yesCount / rawData.length * 100)}%)</p>`;
+
+                } else {
+                    html += '<p class="notfound">❌ No beta field found!</p>';
+                    html += '<h3>Headers searched:</h3>';
+                    html += '<pre>' + headers.join('\n') + '</pre>';
+                }
+
+                resultsEl.innerHTML = html;
+
+            } catch (error) {
+                resultsEl.innerHTML = `<p class="notfound">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function checkAllHeaders() {
+            const resultsEl = document.getElementById('results');
+            resultsEl.innerHTML = '<p>⏳ Fetching headers...</p>';
+
+            try {
+                const rawData = await fetchSheetData();
+                if (rawData && rawData.length > 0) {
+                    const headers = Object.keys(rawData[0]);
+                    let html = '<h2>All Column Headers:</h2><pre>';
+                    headers.forEach((h, i) => {
+                        html += `${i + 1}. "${h}"\n`;
+                    });
+                    html += '</pre>';
+                    resultsEl.innerHTML = html;
+                }
+            } catch (error) {
+                resultsEl.innerHTML = `<p class="notfound">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(analyzeBetaField, 500);
+        });
+    </script>
+</body>
+</html>

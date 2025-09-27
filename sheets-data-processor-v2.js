@@ -20,9 +20,16 @@ class LeeketDataProcessor {
             betaTester: [
                 'Beta testeur',
                 'Beta Testeur',
+                'beta testeur',
                 'Testeur Beta',
+                'Testeur beta',
+                'Beta tester',
+                'Beta Tester',
+                'Bêta testeur',
                 'Beta',
-                'Testeur'
+                'Testeur',
+                'Tester',
+                'beta'
             ],
             phone: [
                 'Téléphone',
@@ -240,6 +247,17 @@ class LeeketDataProcessor {
             name: this.findColumn(headers, 'name')
         };
 
+        // Special debug for beta tester column
+        console.log('🔍 Beta tester column analysis:');
+        console.log('  - Column found:', columns.betaTester || 'NOT FOUND');
+        if (columns.betaTester && rawData.length > 0) {
+            console.log('  - Sample values from first 3 rows:');
+            for (let i = 0; i < Math.min(3, rawData.length); i++) {
+                const val = rawData[i][columns.betaTester];
+                console.log(`    Row ${i + 1}: "${val}"`);
+            }
+        }
+
         // Initialize counters
         const stats = {
             total: rawData.length,
@@ -284,8 +302,28 @@ class LeeketDataProcessor {
 
             // Beta tester
             const betaValue = this.getValue(row, columns.betaTester);
-            if (betaValue && (betaValue.toLowerCase().includes('oui') || betaValue.toLowerCase() === 'yes')) {
-                stats.betaTesters++;
+
+            // Debug first 3 rows to see what values we're getting
+            if (index < 3) {
+                console.log(`Row ${index + 1} Beta value: "${betaValue}" (column: ${columns.betaTester})`);
+            }
+
+            if (betaValue) {
+                const betaLower = betaValue.toLowerCase();
+                // Check for various positive responses
+                if (betaLower.includes('oui') ||
+                    betaLower === 'yes' ||
+                    betaLower === 'o' ||
+                    betaLower === 'y' ||
+                    betaLower === '1' ||
+                    betaLower === 'true' ||
+                    betaLower.includes('veux') ||  // "je veux"
+                    betaLower.includes('souhaite')) {  // "je souhaite"
+                    stats.betaTesters++;
+                    if (index < 5) {
+                        console.log(`✅ Row ${index + 1} counted as beta tester`);
+                    }
+                }
             }
 
             // Contact info
