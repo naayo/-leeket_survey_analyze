@@ -205,7 +205,7 @@ function processSurveyData(rawData) {
         // Process location
         const location = findValue(row, ['quartier/zone', 'localisation', 'location', 'pays', 'country', 'zone', 'quartier']);
         if (location) {
-            const loc = location.toLowerCase();
+            const loc = String(location).toLowerCase();
             // Check for diaspora keywords
             if (loc.includes('france') || loc.includes('usa') || loc.includes('canada') ||
                 loc.includes('europe') || loc.includes('étranger') || loc.includes('états-unis')) {
@@ -249,13 +249,13 @@ function processSurveyData(rawData) {
         // Process services
         const serviceList = findValue(row, ['services', 'service']);
         if (serviceList) {
-            categorizeServices(serviceList, services);
+            categorizeServices(String(serviceList), services);
         }
 
         // Process dishes
         const dishes = findValue(row, ['plats', 'plat', 'dishes', 'dish']);
         if (dishes) {
-            const dishList = dishes.split(/[,;]/);
+            const dishList = String(dishes).split(/[,;]/);
             dishList.forEach(dish => {
                 const trimmed = dish.trim().toLowerCase();
                 if (trimmed) {
