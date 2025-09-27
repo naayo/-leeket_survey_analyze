@@ -11,7 +11,7 @@ async function fetchSheetData() {
 
     // Method 1: Try Google Visualization API first (no API key needed, more reliable)
     try {
-        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Responses`;
 
         console.log('Fetching from Google Visualization API:', url);
 
@@ -52,7 +52,7 @@ async function fetchSheetData() {
     // Method 2: Try Google Sheets API v4 with API key
     if (apiKey && apiKey !== '') {
         try {
-            const range = 'A1:Z1000'; // Get first 1000 rows
+            const range = 'Responses!A1:Z1000'; // Get first 1000 rows from Responses sheet
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
             console.log('Fetching from Google Sheets API v4:', url);
@@ -85,9 +85,9 @@ async function fetchSheetData() {
     }
 
 
-    // Method 3: Try CSV export
+    // Method 3: Try CSV export (this gets the first/default sheet, so might not work)
     try {
-        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
 
         console.log('Fetching CSV export:', url);
 

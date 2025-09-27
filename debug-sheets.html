@@ -77,7 +77,7 @@
             const rawDataEl = document.getElementById('raw-data');
             const rawStatusEl = document.getElementById('raw-status');
 
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/A1:Z1000?key=${SHEETS_CONFIG.API_KEY}`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/Responses!A1:Z1000?key=${SHEETS_CONFIG.API_KEY}`;
 
             resultsEl.innerHTML = `<div class="info">Testing: ${url}</div>`;
             rawStatusEl.innerHTML = '<div class="info">Fetching from Google Sheets API v4...</div>';
@@ -105,7 +105,7 @@
             const rawDataEl = document.getElementById('raw-data');
             const rawStatusEl = document.getElementById('raw-status');
 
-            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SHEET_ID}/gviz/tq?tqx=out:json`;
+            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Responses`;
 
             resultsEl.innerHTML = `<div class="info">Testing: ${url}</div>`;
             rawStatusEl.innerHTML = '<div class="info">Fetching from Visualization API...</div>';
