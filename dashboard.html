@@ -162,6 +162,16 @@
                 </div>
             </div>
 
+            <!-- Fourchettes de prix -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">💰</span> Fourchettes de Prix Acceptables
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="pricesChart"></canvas>
+                </div>
+            </div>
+
             <!-- Niveau d'intérêt -->
             <div class="chart-container">
                 <div class="chart-title">
@@ -233,12 +243,16 @@
 
             <div class="recommendation-card priority-medium">
                 <div class="recommendation-title">
-                    💰 Stratégie Tarifaire
+                    💰 Stratégie Tarifaire (par plat individuel)
                 </div>
                 <div class="recommendation-text">
-                    Prix de lancement recommandé : <strong>8,000-10,000 FCFA</strong> (milieu de fourchette).<br>
-                    Livraison à <strong>1,000 FCFA</strong> maximum.<br>
-                    Prix premium possible jusqu'à <strong>16,000 FCFA</strong>.
+                    <strong>Prix par plat (portion individuelle) :</strong><br>
+                    • Prix d'entrée : <strong>3,500 FCFA</strong> (minimum acceptable)<br>
+                    • Prix recommandé : <strong>7,500-8,500 FCFA</strong> (prix idéal selon 50% des sondés)<br>
+                    • Prix premium : jusqu'à <strong>16,000 FCFA</strong> (clients prêts à payer plus)<br>
+                    <br>
+                    <strong>Frais de livraison :</strong> <strong>1,000 FCFA</strong> maximum<br>
+                    <small>💡 Ces prix sont basés sur les réponses des 66 participants au sondage</small>
                 </div>
             </div>
 
@@ -478,7 +492,70 @@
             }
         });
 
-        // 5. Niveau d'intérêt
+        // 5. Fourchettes de prix
+        const pricesCtx = document.getElementById('pricesChart').getContext('2d');
+        chartInstances.prices = new Chart(pricesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Prix Minimum', 'Prix Idéal', 'Prix Maximum', 'Livraison'],
+                datasets: [{
+                    label: 'Moyennes des prix (FCFA)',
+                    data: [
+                        dashboardData.avgPriceMin || 3500,
+                        dashboardData.avgPriceIdeal || 7500,
+                        dashboardData.avgPriceMax || 15000,
+                        dashboardData.avgDeliveryPrice || 1000
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 193, 7, 0.8)',  // Jaune pour minimum
+                        'rgba(76, 175, 80, 0.8)',   // Vert pour idéal
+                        'rgba(244, 67, 54, 0.8)',   // Rouge pour maximum
+                        'rgba(33, 150, 243, 0.8)'   // Bleu pour livraison
+                    ],
+                    borderColor: [
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(76, 175, 80, 1)',
+                        'rgba(244, 67, 54, 1)',
+                        'rgba(33, 150, 243, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' F';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const formatted = value.toLocaleString('fr-FR');
+                                if (context.dataIndex === 3) {
+                                    return `Frais de livraison: ${formatted} FCFA`;
+                                } else {
+                                    return `Prix par plat: ${formatted} FCFA`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 6. Niveau d'intérêt
         const interestCtx = document.getElementById('interestChart').getContext('2d');
         chartInstances.interest = new Chart(interestCtx, {
             type: 'bar',
