@@ -1,0 +1,8 @@
+# Redirect rules for Netlify
+
+# SPA fallback - redirect all routes to index for client-side routing
+/dashboard              /dashboard.html   200
+/login                  /index.html       200
+
+# Protect dashboard from direct access (handled by JavaScript)
+/dashboard.html         /dashboard.html   200!

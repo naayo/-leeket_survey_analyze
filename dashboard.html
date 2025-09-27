@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Leeket - Analyse du Sondage</title>
+    <script src="auth.js"></script>
+    <script src="sheets-config.js"></script>
+    <script src="data-fetcher.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="dashboard-updated.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .update-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin-top: 15px;
+            display: inline-block;
+        }
+
+        .auth-header {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .user-info {
+            color: #4a5568;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.2em;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .error-banner {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .error-banner.show {
+            display: block;
+            animation: slideInDown 0.5s ease;
+        }
+
+        .refresh-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            margin-left: 15px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .refresh-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .data-source-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            color: #666;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .data-source-indicator.live {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .data-source-indicator.fallback {
+            border-left: 4px solid #ff9800;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.8s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-trend {
+            font-size: 0.85em;
+            color: #4CAF50;
+            margin-top: 5px;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeIn 1s ease;
+        }
+        
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        .insight-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: pulse 2s ease infinite;
+        }
+        
+        .insight-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .insight-list {
+            list-style: none;
+        }
+        
+        .insight-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .insight-list li:before {
+            content: "→";
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .evolution-box {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border-radius: 20px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .evolution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .evolution-item {
+            text-align: center;
+        }
+        
+        .evolution-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        
+        .evolution-label {
+            font-size: 0.9em;
+            opacity: 0.95;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.01); }
+        }
+        
+        .emoji {
+            font-size: 1.3em;
+        }
+        
+        .recommendation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .recommendation-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            border-left: 4px solid;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .recommendation-card.priority-high {
+            border-color: #f5576c;
+        }
+        
+        .recommendation-card.priority-medium {
+            border-color: #ffc107;
+        }
+        
+        .recommendation-card.priority-low {
+            border-color: #4CAF50;
+        }
+        
+        .recommendation-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .recommendation-text {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Chargement des données...</div>
+        </div>
+    </div>
+
+    <!-- Authentication Header -->
+    <div class="auth-header">
+        <span class="user-info">Connecté en tant que: <strong id="currentUser">-</strong></span>
+        <button class="logout-btn" onclick="logout()">Déconnexion</button>
+    </div>
+
+    <!-- Data Source Indicator -->
+    <div id="dataSourceIndicator" class="data-source-indicator">
+        <span id="dataSourceText">📊 Source: En attente...</span>
+    </div>
+
+    <div class="container">
+        <!-- Error Banner -->
+        <div id="errorBanner" class="error-banner">
+            <span id="errorMessage">Erreur lors du chargement des données</span>
+            <button class="refresh-btn" onclick="refreshData()">🔄 Réessayer</button>
+        </div>
+        <div class="header">
+            <h1>🚀 Tableau de Bord Leeket</h1>
+            <p class="subtitle">Analyse complète du sondage - Données actualisées</p>
+            <div class="update-info">
+                <span id="lastUpdate">📅 66 répondants • Mise à jour du 27 septembre 2025</span>
+            </div>
+        </div>
+        
+        <!-- KPIs principaux -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">66</div>
+                <div class="stat-label">Répondants Total</div>
+                <div class="stat-trend">↑ +154% vs initial</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">4.21⭐</div>
+                <div class="stat-label">Note d'Intérêt</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">45%</div>
+                <div class="stat-label">Testeurs Bêta</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">58%</div>
+                <div class="stat-label">Clients Diaspora</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">46.7</div>
+                <div class="stat-label">Score Prospect Moyen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Taux de Contact Téléphone</div>
+            </div>
+        </div>
+
+        <!-- Évolution depuis le dernier rapport -->
+        <div class="evolution-box">
+            <div class="insight-title">
+                <span class="emoji">📈</span> Évolution Depuis le Dernier Rapport
+            </div>
+            <div class="evolution-grid">
+                <div class="evolution-item">
+                    <div class="evolution-value">+40</div>
+                    <div class="evolution-label">Nouveaux répondants</div>
+                </div>
+                <div class="evolution-item">
+                    <div class="evolution-value">+13</div>
+                    <div class="evolution-label">Prospects chauds</div>
+                </div>
+                <div class="evolution-item">
+                    <div class="evolution-value">+19</div>
+                    <div class="evolution-label">Testeurs bêta</div>
+                </div>
+                <div class="evolution-item">
+                    <div class="evolution-value">+4.4</div>
+                    <div class="evolution-label">Points score moyen</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Points clés stratégiques -->
+        <div class="insight-box">
+            <div class="insight-title">
+                <span class="emoji">💡</span> Points Clés Stratégiques
+            </div>
+            <ul class="insight-list">
+                <li>Marché validé : 66 réponses en peu de temps, forte traction</li>
+                <li>Diaspora confirmée comme segment prioritaire (58% du marché)</li>
+                <li>Excellent engagement : 45% veulent être testeurs bêta</li>
+                <li>Thieboudienne et Yassa dominent largement (18 et 17 mentions)</li>
+                <li>Prix psychologique validé : 5,600 - 16,000 FCFA acceptables</li>
+                <li>Majorité de jeunes actifs : 47% ont entre 18-25 ans</li>
+            </ul>
+        </div>
+
+        <!-- Graphiques principaux -->
+        <div class="charts-grid">
+            <!-- Segmentation des Prospects -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">🎯</span> Segmentation des Prospects
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="segmentsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Distribution des Scores -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">📊</span> Répartition des Scores de Qualification
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="scoresChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Types de clients -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">🌍</span> Origine des Clients
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="usersChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tranches d'âge -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">🎂</span> Répartition par Âge
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="ageChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Niveau d'intérêt -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">⭐</span> Niveau d'Intérêt pour le Service
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="interestChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Services préférés -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span class="emoji">📦</span> Modes de Service Préférés
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="servicesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Plats -->
+            <div class="chart-container full-width">
+                <div class="chart-title">
+                    <span class="emoji">🍛</span> Top 10 des Plats Sénégalais les Plus Demandés
+                </div>
+                <div class="chart-wrapper" style="height: 250px;">
+                    <canvas id="platsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Analyse Financière -->
+            <div class="chart-container full-width">
+                <div class="chart-title">
+                    <span class="emoji">💰</span> Zone de Prix Acceptable (en FCFA)
+                </div>
+                <div class="chart-wrapper" style="height: 200px;">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommandations actualisées -->
+        <div class="recommendation-grid">
+            <div class="recommendation-card priority-high">
+                <div class="recommendation-title">🎯 Action Prioritaire 1 : Lancement Diaspora</div>
+                <div class="recommendation-text">
+                    Avec 58% de clients diaspora et une forte demande, lancez immédiatement 
+                    le service d'envoi de courses. C'est votre avantage concurrentiel majeur.
+                </div>
+            </div>
+            <div class="recommendation-card priority-high">
+                <div class="recommendation-title">🚀 Action Prioritaire 2 : Programme Bêta</div>
+                <div class="recommendation-text">
+                    Mobilisez vos 30 testeurs bêta (45% des répondants). 
+                    Commencez avec les 19 prospects chauds pour un lancement rapide.
+                </div>
+            </div>
+            <div class="recommendation-card priority-medium">
+                <div class="recommendation-title">💵 Stratégie Tarifaire</div>
+                <div class="recommendation-text">
+                    Prix de lancement recommandé : 8,000-10,000 FCFA (milieu de fourchette).
+                    Livraison à 1,000 FCFA maximum. Prix premium possible jusqu'à 16,000 FCFA.
+                </div>
+            </div>
+            <div class="recommendation-card priority-medium">
+                <div class="recommendation-title">🍛 Menu de Lancement</div>
+                <div class="recommendation-text">
+                    Focus sur le trio gagnant : Thieboudienne (18 demandes), Yassa (17), 
+                    Mafé et Ceebu jen blanc (11 chacun). 80% de la demande.
+                </div>
+            </div>
+            <div class="recommendation-card priority-low">
+                <div class="recommendation-title">📱 Mix de Services</div>
+                <div class="recommendation-text">
+                    Privilégiez la livraison pure (24% de préférence) et le service mixte (15%). 
+                    Le click & collect reste secondaire.
+                </div>
+            </div>
+            <div class="recommendation-card priority-low">
+                <div class="recommendation-title">🎓 Ciblage Générationnel</div>
+                <div class="recommendation-text">
+                    Focus marketing sur les 18-35 ans (71% de votre marché).
+                    Communication digitale et réseaux sociaux privilégiés.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard charts initialization
+        // Data loading and authentication is handled by dashboard-updated.js
+
+        // Configuration globale Chart.js
+        function initializeDashboard() {
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            Chart.defaults.plugins.legend.display = true;
+            Chart.defaults.plugins.legend.position = 'bottom';
+
+            // 1. Graphique de Segmentation des Prospects
+        const segmentsCtx = document.getElementById('segmentsChart').getContext('2d');
+        chartInstances.segments = new Chart(segmentsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Prospects Chauds 🔥', 'Prospects Tièdes 🌡️', 'Prospects Froids ❄️'],
+                datasets: [{
+                    data: [dashboardData.hotLeads, dashboardData.warmLeads, dashboardData.coldLeads],
+                    backgroundColor: [
+                        'rgba(245, 87, 108, 0.9)',
+                        'rgba(255, 193, 7, 0.9)',
+                        'rgba(96, 165, 250, 0.9)'
+                    ],
+                    borderColor: [
+                        'rgba(245, 87, 108, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(96, 165, 250, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(0);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Distribution des Scores
+        const scoresCtx = document.getElementById('scoresChart').getContext('2d');
+        chartInstances.scores = new Chart(scoresCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Très faible\n(0-20)', 'Faible\n(21-40)', 'Moyen\n(41-60)', 'Bon\n(61-80)', 'Excellent\n(81-100)'],
+                datasets: [{
+                    label: 'Nombre de prospects',
+                    data: dashboardData.scoreDistribution,
+                    backgroundColor: [
+                        'rgba(96, 165, 250, 0.8)',
+                        'rgba(129, 140, 248, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(255, 152, 0, 0.8)',
+                        'rgba(245, 87, 108, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(96, 165, 250, 1)',
+                        'rgba(129, 140, 248, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(255, 152, 0, 1)',
+                        'rgba(245, 87, 108, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.raw / dashboardData.totalRespondents) * 100).toFixed(0);
+                                return `${context.raw} prospects (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 5 }
+                    }
+                }
+            }
+        });
+
+        // 3. Types de clients
+        const usersCtx = document.getElementById('usersChart').getContext('2d');
+        chartInstances.users = new Chart(usersCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Diaspora 🌍', 'Sénégal Local 🇸🇳'],
+                datasets: [{
+                    data: [dashboardData.diasporaCount, dashboardData.senegalCount],
+                    backgroundColor: [
+                        'rgba(118, 75, 162, 0.9)',
+                        'rgba(76, 175, 80, 0.9)'
+                    ],
+                    borderColor: [
+                        'rgba(118, 75, 162, 1)',
+                        'rgba(76, 175, 80, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const percentage = ((value / dashboardData.totalRespondents) * 100).toFixed(0);
+                                return `${context.label}: ${value} personnes (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. Tranches d'âge
+        const ageCtx = document.getElementById('ageChart').getContext('2d');
+        chartInstances.age = new Chart(ageCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(dashboardData.ageDistribution),
+                datasets: [{
+                    label: 'Répondants',
+                    data: Object.values(dashboardData.ageDistribution),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.raw / dashboardData.totalRespondents) * 100).toFixed(0);
+                                return `${context.raw} personnes (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 5 }
+                    }
+                }
+            }
+        });
+
+        // 5. Niveau d'intérêt
+        const interestCtx = document.getElementById('interestChart').getContext('2d');
+        chartInstances.interest = new Chart(interestCtx, {
+            type: 'bar',
+            data: {
+                labels: ['⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐'],
+                datasets: [{
+                    label: 'Votes',
+                    data: dashboardData.interestDistribution,
+                    backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 2,
+                    borderRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return `Note: ${context[0].dataIndex + 1}/5`;
+                            },
+                            label: function(context) {
+                                const total = dashboardData.interestDistribution.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(0);
+                                return `${context.raw} personnes (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 2 }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 16 }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 6. Services préférés
+        const servicesCtx = document.getElementById('servicesChart').getContext('2d');
+        chartInstances.services = new Chart(servicesCtx, {
+            type: 'polarArea',
+            data: {
+                labels: Object.keys(dashboardData.services),
+                datasets: [{
+                    data: Object.values(dashboardData.services),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(201, 203, 207, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(201, 203, 207, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.raw / dashboardData.totalRespondents) * 100).toFixed(0);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 7. Top Plats
+        const platsCtx = document.getElementById('platsChart').getContext('2d');
+        chartInstances.plats = new Chart(platsCtx, {
+            type: 'bar',
+            data: {
+                labels: dashboardData.topDishes.map(d => d.name),
+                datasets: [{
+                    label: 'Nombre de mentions',
+                    data: dashboardData.topDishes.map(d => d.count),
+                    backgroundColor: 'rgba(245, 87, 108, 0.8)',
+                    borderColor: 'rgba(245, 87, 108, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw} mentions`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 2 }
+                    }
+                }
+            }
+        });
+
+        // 8. Analyse des Prix
+        const priceCtx = document.getElementById('priceChart').getContext('2d');
+        chartInstances.price = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels: ['Prix Minimum\nAcceptable', 'Prix Idéal\nRecommandé', 'Prix Maximum\nPossible'],
+                datasets: [{
+                    label: 'Zone tarifaire',
+                    data: [dashboardData.avgPriceMin, dashboardData.avgPriceIdeal, dashboardData.avgPriceMax],
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'white',
+                    pointBorderColor: 'rgba(102, 126, 234, 1)',
+                    pointBorderWidth: 3
+                },
+                {
+                    label: 'Prix livraison',
+                    data: [dashboardData.avgDeliveryPrice, dashboardData.avgDeliveryPrice, dashboardData.avgDeliveryPrice],
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        display: true,
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw.toLocaleString('fr-FR')} FCFA`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' FCFA';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+            // Animations au scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.chart-container, .recommendation-card').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(el);
+            });
+        }
+    </script>
+</body>
+</html>
