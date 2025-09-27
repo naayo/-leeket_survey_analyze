@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Data Processor V2</title>
+    <script src="sheets-config.js?v=6"></script>
+    <script src="sheets-data-processor-v2.js?v=1"></script>
+    <script src="sheets-data-connector.js?v=6"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Data Processor V2 - Leeket Survey</h1>
+
+        <div class="section">
+            <h2>1️⃣ Connexion Google Sheets</h2>
+            <button onclick="testConnection()">Tester la Connexion</button>
+            <div id="connection-status"></div>
+        </div>
+
+        <div class="section">
+            <h2>2️⃣ Analyse des Colonnes</h2>
+            <button onclick="analyzeColumns()">Analyser les Colonnes</button>
+            <div id="columns-analysis"></div>
+        </div>
+
+        <div class="section">
+            <h2>3️⃣ Traitement des Données</h2>
+            <button onclick="processData()">Traiter les Données</button>
+            <div id="process-results"></div>
+        </div>
+
+        <div class="section">
+            <h2>4️⃣ Statistiques Finales</h2>
+            <div id="final-stats" class="stats-grid"></div>
+        </div>
+
+        <div class="section">
+            <h2>5️⃣ Données Brutes (Debug)</h2>
+            <button onclick="toggleRawData()">Afficher/Masquer</button>
+            <div id="raw-data" style="display: none;">
+                <pre id="raw-json"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = null;
+
+        async function testConnection() {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.innerHTML = '<p>🔄 Test de connexion en cours...</p>';
+
+            try {
+                const rawData = await fetchSheetData();
+                statusEl.innerHTML = `
+                    <p class="success">✅ Connexion réussie!</p>
+                    <p>📊 ${rawData.length} lignes récupérées depuis Google Sheets</p>
+                `;
+                globalData = rawData;
+            } catch (error) {
+                statusEl.innerHTML = `
+                    <p class="error">❌ Erreur de connexion</p>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function analyzeColumns() {
+            const analysisEl = document.getElementById('columns-analysis');
+
+            if (!globalData) {
+                analysisEl.innerHTML = '<p class="warning">⚠️ Veuillez d\'abord tester la connexion</p>';
+                return;
+            }
+
+            analysisEl.innerHTML = '<p>🔍 Analyse des colonnes...</p>';
+
+            const processor = new LeeketDataProcessor();
+            const headers = Object.keys(globalData[0]);
+
+            let html = '<h3>Colonnes détectées:</h3>';
+            html += '<table><tr><th>Type</th><th>Colonne trouvée</th><th>Valeur exemple</th></tr>';
+
+            const mappings = [
+                'location', 'betaTester', 'phone', 'email',
+                'interest', 'age', 'dishes', 'services'
+            ];
+
+            mappings.forEach(mapping => {
+                const found = processor.findColumn(headers, mapping);
+                const example = found && globalData[0][found] ?
+                    String(globalData[0][found]).substring(0, 50) : 'N/A';
+
+                html += `<tr>
+                    <td><strong>${mapping}</strong></td>
+                    <td>${found || 'NON TROUVÉ'}</td>
+                    <td>${example}</td>
+                </tr>`;
+            });
+
+            html += '</table>';
+            analysisEl.innerHTML = html;
+        }
+
+        async function processData() {
+            const resultsEl = document.getElementById('process-results');
+            const statsEl = document.getElementById('final-stats');
+
+            if (!globalData) {
+                resultsEl.innerHTML = '<p class="warning">⚠️ Veuillez d\'abord tester la connexion</p>';
+                return;
+            }
+
+            resultsEl.innerHTML = '<p>⚙️ Traitement en cours...</p>';
+
+            try {
+                const processor = new LeeketDataProcessor();
+                const processed = processor.processSurveyData(globalData);
+
+                // Show processing results
+                resultsEl.innerHTML = `
+                    <p class="success">✅ Traitement réussi!</p>
+                    <h3>Résultats du traitement:</h3>
+                    <ul>
+                        <li>Total répondants: <strong>${processed.totalRespondents}</strong></li>
+                        <li>Diaspora: <strong>${processed.diasporaCount}</strong> (${Math.round(processed.diasporaCount / processed.totalRespondents * 100)}%)</li>
+                        <li>Sénégal Local: <strong>${processed.senegalCount}</strong> (${Math.round(processed.senegalCount / processed.totalRespondents * 100)}%)</li>
+                        <li>Non classés: <strong>${processed.unknownCount}</strong></li>
+                        <li>Beta Testeurs: <strong>${processed.betaTestersCount}</strong></li>
+                        <li>Avec téléphone: <strong>${processed.phoneCount}</strong></li>
+                        <li>Note moyenne: <strong>${processed.avgInterest}⭐</strong></li>
+                    </ul>
+                `;
+
+                // Display stats cards
+                statsEl.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.totalRespondents}</div>
+                        <div class="stat-label">Répondants Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.diasporaCount}</div>
+                        <div class="stat-label">Clients Diaspora</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.senegalCount}</div>
+                        <div class="stat-label">Clients Sénégal</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.betaTestersCount}</div>
+                        <div class="stat-label">Beta Testeurs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.phoneCount}</div>
+                        <div class="stat-label">Contacts Téléphone</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${processed.avgInterest}⭐</div>
+                        <div class="stat-label">Note Moyenne</div>
+                    </div>
+                `;
+
+                // Store for raw display
+                document.getElementById('raw-json').textContent = JSON.stringify(processed, null, 2);
+
+            } catch (error) {
+                resultsEl.innerHTML = `
+                    <p class="error">❌ Erreur de traitement</p>
+                    <p>${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+
+        function toggleRawData() {
+            const rawEl = document.getElementById('raw-data');
+            rawEl.style.display = rawEl.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Auto-run on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await testConnection();
+            if (globalData) {
+                await analyzeColumns();
+                await processData();
+            }
+        });
+    </script>
+</body>
+</html>

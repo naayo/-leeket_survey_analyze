@@ -457,7 +457,17 @@ function getFallbackData() {
 async function getDashboardData() {
     try {
         const rawData = await fetchSheetData();
-        const processedData = processSurveyData(rawData);
+
+        // Use the new processor if available, otherwise fallback to old method
+        let processedData;
+        if (typeof LeeketDataProcessor !== 'undefined') {
+            console.log('📊 Using LeeketDataProcessor v2');
+            const processor = new LeeketDataProcessor();
+            processedData = processor.processSurveyData(rawData);
+        } else {
+            console.log('📊 Using legacy processor');
+            processedData = processSurveyData(rawData);
+        }
 
         // Mark as live data
         processedData._dataSource = 'live';
