@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Live Connection</title>
+    <script src="sheets-config.js?v=4"></script>
+    <script src="sheets-data-connector.js?v=4"></script>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2ecc71;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .success { color: #27ae60; font-weight: bold; }
+        .error { color: #e74c3c; font-weight: bold; }
+        .warning { color: #f39c12; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Live Google Sheets Connection</h1>
+
+    <div class="section">
+        <h2>📋 Configuration Check</h2>
+        <div id="config-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>🌐 Connection Methods Test</h2>
+        <button onclick="testAllMethods()">Test All Connection Methods</button>
+        <div id="methods-test"></div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Dashboard Data Test</h2>
+        <button onclick="testDashboardData()">Test getDashboardData()</button>
+        <div id="dashboard-test"></div>
+    </div>
+
+    <script>
+        // Check configuration
+        window.addEventListener('DOMContentLoaded', () => {
+            checkConfiguration();
+        });
+
+        function checkConfiguration() {
+            const configEl = document.getElementById('config-check');
+
+            let html = '<h3>Google Sheets Configuration:</h3><pre>';
+
+            // Check if config exists
+            if (typeof SHEETS_CONFIG !== 'undefined') {
+                html += `✅ SHEETS_CONFIG found\n`;
+                html += `Sheet ID: ${SHEETS_CONFIG.SHEET_ID}\n`;
+                html += `API Key: ${SHEETS_CONFIG.API_KEY ? '***' + SHEETS_CONFIG.API_KEY.slice(-8) : 'NOT SET'}\n`;
+                html += `Sheets: ${JSON.stringify(SHEETS_CONFIG.SHEETS, null, 2)}\n`;
+            } else {
+                html += `❌ SHEETS_CONFIG not found\n`;
+            }
+
+            html += '</pre>';
+            configEl.innerHTML = html;
+        }
+
+        async function testAllMethods() {
+            const testEl = document.getElementById('methods-test');
+            testEl.innerHTML = '<h3>Testing connection methods...</h3>';
+
+            const sheetId = SHEETS_CONFIG.SHEET_ID;
+            const apiKey = SHEETS_CONFIG.API_KEY;
+
+            // Test 1: Visualization API
+            testEl.innerHTML += '<h4>1. Google Visualization API:</h4>';
+            try {
+                const vizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Responses`;
+                const vizResponse = await fetch(vizUrl);
+                const vizText = await vizResponse.text();
+
+                if (vizResponse.ok) {
+                    const match = vizText.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/);
+                    if (match && match[1]) {
+                        const data = JSON.parse(match[1]);
+                        testEl.innerHTML += `<div class="success">✅ Success! Got ${data.table?.rows?.length || 0} rows</div>`;
+                    } else {
+                        testEl.innerHTML += `<div class="warning">⚠️ Response received but parsing failed</div>`;
+                    }
+                } else {
+                    testEl.innerHTML += `<div class="error">❌ Failed: HTTP ${vizResponse.status}</div>`;
+                }
+            } catch (error) {
+                testEl.innerHTML += `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+
+            // Test 2: Sheets API v4
+            testEl.innerHTML += '<h4>2. Google Sheets API v4:</h4>';
+            if (apiKey && apiKey !== '') {
+                try {
+                    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Responses!A1:Z1000?key=${apiKey}`;
+                    const apiResponse = await fetch(apiUrl);
+
+                    if (apiResponse.ok) {
+                        const apiData = await apiResponse.json();
+                        testEl.innerHTML += `<div class="success">✅ Success! Got ${apiData.values?.length || 0} rows</div>`;
+                    } else {
+                        const error = await apiResponse.json();
+                        testEl.innerHTML += `<div class="error">❌ Failed: ${error.error?.message || 'Unknown error'}</div>`;
+                    }
+                } catch (error) {
+                    testEl.innerHTML += `<div class="error">❌ Error: ${error.message}</div>`;
+                }
+            } else {
+                testEl.innerHTML += '<div class="warning">⚠️ No API key configured</div>';
+            }
+
+            // Test 3: CSV Export
+            testEl.innerHTML += '<h4>3. CSV Export:</h4>';
+            try {
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+                const csvResponse = await fetch(csvUrl);
+
+                if (csvResponse.ok) {
+                    const csvText = await csvResponse.text();
+                    const lines = csvText.split('\n');
+                    testEl.innerHTML += `<div class="success">✅ Success! Got ${lines.length} lines</div>`;
+                } else {
+                    testEl.innerHTML += `<div class="error">❌ Failed: HTTP ${csvResponse.status}</div>`;
+                }
+            } catch (error) {
+                testEl.innerHTML += `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDashboardData() {
+            const testEl = document.getElementById('dashboard-test');
+            testEl.innerHTML = '<h3>Testing getDashboardData()...</h3>';
+
+            try {
+                console.log('Calling getDashboardData()...');
+                const data = await getDashboardData();
+
+                testEl.innerHTML += '<h4>Result:</h4><pre>';
+                testEl.innerHTML += `Data Source: ${data._dataSource}\n`;
+                testEl.innerHTML += `Reason: ${data._reason || 'None'}\n`;
+                testEl.innerHTML += `Total Respondents: ${data.totalRespondents}\n`;
+                testEl.innerHTML += `Diaspora: ${data.diasporaCount}\n`;
+                testEl.innerHTML += `Senegal: ${data.senegalCount}\n`;
+                testEl.innerHTML += `Beta Testers: ${data.betaTestersCount}\n`;
+                testEl.innerHTML += '</pre>';
+
+                if (data._dataSource === 'live') {
+                    testEl.innerHTML += '<div class="success">✅ Using LIVE data from Google Sheets!</div>';
+                } else {
+                    testEl.innerHTML += '<div class="warning">⚠️ Using FALLBACK data</div>';
+                }
+
+            } catch (error) {
+                testEl.innerHTML += `<div class="error">❌ Error: ${error.message}</div>`;
+                testEl.innerHTML += `<pre>${error.stack}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

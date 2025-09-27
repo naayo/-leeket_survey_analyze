@@ -7,7 +7,8 @@ let chartsInitialized = false;
 
 // Ensure we have the data fetcher instance
 if (typeof leeketDataFetcher === 'undefined') {
-    window.leeketDataFetcher = new LeeketDataFetcherV2();
+    // Use the simpler method directly from sheets-data-connector.js
+    console.log('Using getDashboardData from sheets-data-connector.js');
 }
 
 // === AUTHENTICATION CHECK ===

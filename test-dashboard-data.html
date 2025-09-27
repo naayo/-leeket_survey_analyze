@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Data</title>
+    <script src="sheets-config.js?v=3"></script>
+    <script src="sheets-data-connector.js?v=3"></script>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .success { background: #d4edda; border-color: #28a745; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Dashboard Data Loading</h1>
+
+    <div class="section">
+        <h2>🔍 Test Dashboard Data Function</h2>
+        <button onclick="testDashboardData()">Test getDashboardData()</button>
+        <div id="dashboard-test-status"></div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Dashboard Data Output</h2>
+        <div id="dashboard-data-output"></div>
+    </div>
+
+    <script>
+        async function testDashboardData() {
+            const statusEl = document.getElementById('dashboard-test-status');
+            const outputEl = document.getElementById('dashboard-data-output');
+
+            statusEl.innerHTML = '<div style="color: blue;">Testing getDashboardData()...</div>';
+
+            try {
+                // Clear any cached data first
+                console.log('Clearing any cached data...');
+
+                // Call the dashboard data function
+                const dashboardData = await getDashboardData();
+
+                // Check the data source
+                const dataSource = dashboardData._dataSource || 'unknown';
+                const reason = dashboardData._reason || 'none';
+
+                statusEl.innerHTML = `
+                    <div style="color: green;">✅ Dashboard data loaded successfully</div>
+                    <div style="margin-top: 10px;">
+                        <strong>Data Source:</strong> ${dataSource}<br>
+                        <strong>Reason:</strong> ${reason}<br>
+                        <strong>Total Respondents:</strong> ${dashboardData.totalRespondents}<br>
+                        <strong>Diaspora Count:</strong> ${dashboardData.diasporaCount}<br>
+                        <strong>Senegal Count:</strong> ${dashboardData.senegalCount}
+                    </div>
+                `;
+
+                // Display full data
+                outputEl.innerHTML = '<h3>Full Dashboard Data:</h3><pre>' +
+                    JSON.stringify(dashboardData, null, 2) + '</pre>';
+
+            } catch (error) {
+                statusEl.innerHTML = `<div style="color: red;">❌ Error: ${error.message}</div>`;
+                outputEl.innerHTML = `<pre>Error details:\n${error.stack}</pre>`;
+            }
+        }
+
+        // Auto-run the test
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testDashboardData, 1000);
+        });
+    </script>
+</body>
+</html>

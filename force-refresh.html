@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Refresh Dashboard</title>
+    <meta http-equiv="refresh" content="2; url=dashboard.html?v=new&t=1727456789">
+</head>
+<body>
+    <h2>🔄 Forcing cache refresh...</h2>
+    <p>Redirecting to updated dashboard...</p>
+    <script>
+        // Clear any cached data
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Force reload after 2 seconds
+        setTimeout(() => {
+            window.location.href = 'dashboard.html?v=' + Date.now();
+        }, 2000);
+    </script>
+</body>
+</html>
